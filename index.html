@@ -220,11 +220,49 @@ function showSync(msg) {
 
 // ---------- decryption ----------
 const b64 = (s) => Uint8Array.from(atob(s.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((s.length + 3) % 4)), c => c.charCodeAt(0));
-async function decrypt() {
-  const enc = await (await fetch(`content/${encodeURIComponent(TEST)}.enc.json`, { cache: "no-store" })).json();
-  const key = await crypto.subtle.importKey("raw", b64(KEY), "AES-GCM", false, ["decrypt"]);
-  const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64(enc.iv) }, key, b64(enc.ct));
-  return JSON.parse(new TextDecoder().decode(plain));
+let ENC = null;
+const PASS_STORE = `sca:pass:${TEST}`;
+const normPass = (p) => p.trim().toLowerCase().split(/\s+/).join("-");
+// The content key is wrapped once per active batch passphrase; each wrapping key is PBKDF2 over the
+// link key and the passphrase, so the test opens only with both.
+async function decrypt(pass) {
+  const aes = (k) => crypto.subtle.importKey("raw", k, "AES-GCM", false, ["decrypt"]);
+  const open = async (key, iv, data) => new Uint8Array(await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64(iv) }, key, b64(data)));
+  const link = b64(KEY), pw = new TextEncoder().encode("|" + normPass(pass));
+  const material = new Uint8Array(link.length + pw.length); material.set(link); material.set(pw, link.length);
+  const base = await crypto.subtle.importKey("raw", material, "PBKDF2", false, ["deriveKey"]);
+  const kek = await crypto.subtle.deriveKey({ name: "PBKDF2", salt: b64(ENC.salt), iterations: ENC.iter, hash: "SHA-256" },
+                                            base, { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
+  for (const slot of ENC.slots) {
+    let ck;
+    try { ck = await open(kek, slot.iv, slot.wk); } catch { continue; }
+    const plain = await open(await aes(ck), ENC.iv, ENC.ct);
+    return JSON.parse(new TextDecoder().decode(plain));
+  }
+  throw new Error("wrong passphrase");
+}
+
+function askPassphrase(failed) {
+  $("#hdrPart").textContent = "";
+  app.innerHTML = `<div class="hero"><div class="eyebrow">Supply Chain Network Design &amp; Analytics</div>
+    <h1>Enter your passphrase</h1><div class="rule"></div>
+    <p>The hiring team gives out the passphrase at your test's start time.</p></div>
+    <div class="card"><form id="pf">
+      <label class="f" for="pp">Passphrase</label>
+      <input type="text" id="pp" class="short" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="word-word-word-123">
+      ${failed ? `<div class="notice error">That passphrase did not work. Check it with the hiring team; it may not be active yet.</div>` : ""}
+      <p style="margin:22px 0 0"><button id="pgo" type="submit">Open test</button></p></form></div>`;
+  $("#pp").focus();
+  $("#pf").onsubmit = async (e) => {
+    e.preventDefault();
+    const pass = $("#pp").value;
+    if (!pass.trim()) return;
+    $("#pgo").disabled = true; $("#pgo").textContent = "Checking…";
+    try { C = await decrypt(pass); }
+    catch { S.failedPass = (S.failedPass || 0) + 1; save(); queue("passphrase_failed", "", { attempt: S.failedPass }); return askPassphrase(true); }
+    try { localStorage.setItem(PASS_STORE, pass); } catch { /* re-asked on reload */ }
+    start();
+  };
 }
 
 // ---------- screens ----------
@@ -485,16 +523,26 @@ function modal(html) { $("#modalBody").innerHTML = html; $("#modal").style.displ
 function closeModal() { $("#modal").style.display = "none"; }
 
 // ---------- start ----------
+function start() {
+  if (S.done || S.partIdx >= C.parts.length) return finish();
+  if (!S.name) return welcome();
+  partIntro();
+}
+
 (async function init() {
   if (!TOKEN || !TEST || !KEY) return fail("The link is incomplete.");
-  try { C = await decrypt(); } catch { return fail("The test could not be opened from this link."); }
+  try {
+    ENC = await (await fetch(`content/${encodeURIComponent(TEST)}.enc.json`, { cache: "no-store" })).json();
+    if (KEY.length < 40 || !ENC.slots) throw new Error("bad link");
+  } catch { return fail("The test could not be opened from this link."); }
   S = load() || newState();
   if (!S.openedSent) { S.openedSent = true; save(); queue("opened", "", { referrer: document.referrer || "", userAgent: navigator.userAgent }); }
   else queue("reopened", "", {});
   flush();
-  if (S.done || S.partIdx >= C.parts.length) return finish();
-  if (!S.name) return welcome();
-  partIntro();
+  let saved = null;
+  try { saved = localStorage.getItem(PASS_STORE); } catch { /* storage blocked */ }
+  if (saved) { try { C = await decrypt(saved); return start(); } catch { /* batch retired: ask again */ } }
+  askPassphrase(false);
 })();
 </script>
 </body>
