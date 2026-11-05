@@ -1,0 +1,1 @@
+window.TEST_CONFIG = {"webhookUrl": "https://default46c5178ea0f44f4d8c409598e3d118.60.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/10/workflows/6404a3bfe8364068bcef4d11875ffafe/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=CFa9HhJEhdVQkQK3uBcg-3C9il7LynPEAX2yAoennf4"};

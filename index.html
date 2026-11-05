@@ -1,0 +1,501 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Supply Chain Analytics Assessment</title>
+<style>
+  /* Cushman & Wakefield 2024 palette. Arial is the brand's digital and Office typeface. */
+  :root {
+    --indigo: #1D1740; --red: #E4002B; --blue: #0093AD; --grey: #545859; --charcoal: #2A2C2C;
+    --green: #007C58; --yellow: #F1B434; --darkred: #8E1000; --white: #FFFFFF;
+    --blue-12: #E0F2F5; --blue-25: #BFE4EB; --blue-50: #80C9D6;
+    --grey-12: #EAEBEB; --grey-25: #D4D5D6; --grey-50: #AAACAC;
+    --yellow-12: #FDF6E7; --darkred-12: #F1E2E0; --green-12: #E0EFEB;
+    --page: #F4F4F4; --radius: 4px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-padding-top: 90px; }
+  body { margin: 0; background: var(--page); color: var(--charcoal); font: 16px/1.6 Arial, Helvetica, sans-serif; }
+
+  header { position: sticky; top: 0; z-index: 10; background: var(--indigo); color: var(--white);
+           display: flex; align-items: center; gap: 20px; padding: 0 32px; height: 76px; }
+  header .logo { height: 40px; width: auto; display: block; }
+  header .divider { width: 1px; height: 34px; background: rgba(255,255,255,.28); }
+  header .brand { font-weight: 700; font-size: 15px; letter-spacing: .01em; white-space: nowrap; }
+  header .part { color: var(--blue-50); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  header > * { flex-shrink: 0; } header .part { flex-shrink: 1; }
+  #sync { white-space: nowrap; }
+  @media (max-width: 1040px) { #sync { font-size: 0; gap: 0; } #sync::before { width: 10px; height: 10px; } }
+  header .spacer { flex: 1; }
+  #sync { font-size: 12px; color: var(--blue-25); display: flex; align-items: center; gap: 6px; }
+  #sync::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--blue-50); }
+  #sync.pending::before { background: var(--yellow); }
+  #timer { font: 700 20px/1 Arial, sans-serif; font-variant-numeric: tabular-nums; padding: 9px 14px;
+           border-radius: var(--radius); background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.25); min-width: 86px; text-align: center; }
+  #timer.low { background: var(--red); border-color: var(--red); }
+  .accent { height: 4px; background: var(--red); }
+
+  main { max-width: 900px; margin: 0 auto; padding: 32px 16px 130px; }
+  .hero { background: var(--indigo); color: var(--white); border-radius: var(--radius); padding: 36px 36px 32px; margin-bottom: 20px; position: relative; overflow: hidden; }
+  .hero::after { content: ""; position: absolute; right: -60px; top: -60px; width: 220px; height: 220px; border-radius: 50%; border: 36px solid rgba(0,147,173,.25); }
+  .hero .eyebrow { color: var(--blue-50); font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+  .hero h1 { color: var(--white); font-size: 30px; margin: 6px 0 8px; }
+  .hero p { margin: 0; color: var(--blue-25); }
+  .hero .rule { width: 56px; height: 4px; background: var(--red); margin: 14px 0 16px; }
+
+  .card { background: var(--white); border: 1px solid var(--grey-25); border-radius: var(--radius); padding: 28px; margin-bottom: 18px; }
+  h1 { font-size: 26px; margin: 0 0 8px; color: var(--indigo); }
+  h2 { font-size: 20px; margin: 36px 0 14px; color: var(--indigo); }
+  h2.sec { display: flex; align-items: baseline; gap: 10px; padding-bottom: 10px; border-bottom: 2px solid var(--indigo); }
+  h2.sec .m { margin-left: auto; font-size: 14px; color: var(--grey); font-weight: 400; }
+  h3 { font-size: 16px; color: var(--indigo); margin: 0 0 8px; }
+  .card h2:first-child { margin-top: 0; }
+  .muted { color: var(--grey); }
+  a { color: var(--blue); }
+
+  .plan { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); margin: 18px 0 6px; }
+  .plan .p { border: 1px solid var(--grey-25); border-top: 4px solid var(--indigo); border-radius: var(--radius); padding: 14px 16px; }
+  .plan .p.closed { border-top-color: var(--red); }
+  .plan .p b { color: var(--indigo); }
+  .plan .p .t { float: right; font-weight: 700; color: var(--indigo); }
+  .plan .p ul { margin: 6px 0 0; padding-left: 18px; color: var(--grey); font-size: 14px; }
+  .tag { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; padding: 2px 7px; border-radius: 2px; }
+  .tag.closed { background: var(--red); color: var(--white); }
+  .tag.open { background: var(--blue-12); color: var(--blue); }
+  ul.rules { padding-left: 20px; } ul.rules li { margin: 6px 0; }
+
+  .qcard { padding: 0; overflow: hidden; }
+  .qcard .qh { display: flex; align-items: center; gap: 12px; padding: 12px 24px; background: var(--grey-12); border-bottom: 1px solid var(--grey-25); }
+  .qcard .qid { background: var(--indigo); color: var(--white); font-weight: 700; font-size: 13px; padding: 3px 9px; border-radius: 2px; }
+  .qcard .marks { margin-left: auto; font-size: 13px; color: var(--grey); }
+  .qcard .qb { padding: 20px 24px 24px; }
+  .q { user-select: none; -webkit-user-select: none; }
+  .q p:first-child { margin-top: 0; }
+  .q table, .intro table { border-collapse: collapse; margin: 12px 0; font-size: 14px; display: block; overflow-x: auto; }
+  .q th, .intro th { background: var(--indigo); color: var(--white); font-weight: 700; }
+  .q th, .q td, .intro th, .intro td { border: 1px solid var(--grey-25); padding: 6px 10px; text-align: left; }
+  .q tr:nth-child(even) td, .intro tr:nth-child(even) td { background: var(--grey-12); }
+  .q pre, .intro pre { background: var(--grey-12); border-left: 3px solid var(--blue); padding: 12px 14px; overflow-x: auto; font-size: 14px; border-radius: 0 var(--radius) var(--radius) 0; }
+  code { font-family: Consolas, "Courier New", monospace; font-size: .92em; }
+  .intro { border-left: 4px solid var(--blue); }
+
+  label.f { display: block; font-size: 13px; font-weight: 700; color: var(--indigo); margin: 18px 0 6px; }
+  input[type=text], input[type=email], textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--grey-50); border-radius: var(--radius);
+       font: inherit; font-size: 15px; background: var(--white); color: var(--charcoal); transition: border-color .15s, box-shadow .15s; }
+  input:focus, textarea:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-25); }
+  textarea { min-height: 110px; resize: vertical; }
+  textarea.code { font-family: Consolas, "Courier New", monospace; font-size: 14px; min-height: 130px; background: #FBFBFB; }
+  input.short { max-width: 340px; }
+  input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--indigo); flex: none; margin-top: 3px; }
+  .consent { display: flex; gap: 10px; align-items: flex-start; margin-top: 18px; font-size: 14px; color: var(--grey); }
+  .fields2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 18px; }
+
+  button { font: 700 15px Arial, sans-serif; border: 0; border-radius: var(--radius); padding: 12px 24px; cursor: pointer;
+           background: var(--red); color: var(--white); transition: background .15s; }
+  button:hover { background: #C40025; }
+  button.secondary { background: var(--white); color: var(--indigo); border: 1px solid var(--indigo); }
+  button.secondary:hover { background: var(--grey-12); }
+  button:disabled { background: var(--grey-50); cursor: not-allowed; }
+  button:focus-visible { outline: 3px solid var(--blue-50); outline-offset: 2px; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+
+  .notice { border-left: 4px solid var(--yellow); background: var(--yellow-12); padding: 12px 16px; border-radius: 0 var(--radius) var(--radius) 0; margin: 14px 0; }
+  .notice.info { border-left-color: var(--blue); background: var(--blue-12); }
+  .error { border-left-color: var(--darkred); background: var(--darkred-12); }
+
+  .files { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+  .files a { display: inline-flex; align-items: center; gap: 8px; padding: 9px 14px; border: 1px solid var(--blue); border-radius: var(--radius);
+             color: var(--blue); text-decoration: none; font-weight: 700; font-size: 14px; }
+  .files a:hover { background: var(--blue-12); }
+
+  #calc { position: fixed; right: 20px; bottom: 88px; width: 270px; background: var(--white); border: 1px solid var(--grey-25);
+          border-radius: var(--radius); box-shadow: 0 8px 24px rgba(29,23,64,.18); z-index: 20; overflow: hidden; }
+  #calc .ch { background: var(--indigo); color: var(--white); padding: 8px 12px; display: flex; align-items: center; justify-content: space-between; font-weight: 700; font-size: 14px; }
+  #calc .ch button { background: transparent; border: 0; color: var(--white); padding: 0 4px; font-size: 18px; line-height: 1; }
+  #calc .cb { padding: 12px; }
+  #calc input { font-family: Consolas, monospace; }
+  #calc .out { font: 700 20px Consolas, monospace; color: var(--indigo); text-align: right; min-height: 28px; margin-top: 8px; word-break: break-all; }
+  #calcToggle { position: fixed; right: 20px; bottom: 88px; z-index: 19; background: var(--indigo); box-shadow: 0 4px 14px rgba(29,23,64,.25); }
+  #calc[hidden], #calcToggle[hidden] { display: none; }
+  #calcToggle:hover { background: #2D2660; }
+
+  #modal { position: fixed; inset: 0; background: rgba(29,23,64,.55); display: none; align-items: center; justify-content: center; z-index: 30; padding: 16px; }
+  #modal .card { max-width: 520px; margin: 0; border-top: 4px solid var(--red); box-shadow: 0 12px 40px rgba(0,0,0,.25); }
+
+  .submitbar { position: fixed; left: 0; right: 0; bottom: 0; background: var(--white); border-top: 1px solid var(--grey-25);
+               box-shadow: 0 -4px 16px rgba(29,23,64,.08); padding: 12px 32px; display: flex; gap: 16px; align-items: center; z-index: 15; }
+  .submitbar .spacer { flex: 1; }
+  #integrity { font-size: 14px; color: var(--grey); display: flex; align-items: center; gap: 8px; }
+  #integrity.flagged { color: var(--darkred); font-weight: 700; }
+
+  .done { text-align: center; padding: 48px 28px; }
+  .done .tick { width: 64px; height: 64px; border-radius: 50%; background: var(--green); color: var(--white); font-size: 34px; line-height: 64px; margin: 0 auto 16px; }
+  footer { text-align: center; color: var(--grey); font-size: 12px; padding: 0 16px 24px; }
+
+  @media (max-width: 640px) {
+    header { padding: 0 16px; height: 60px; gap: 10px; } header .brand, header .divider, #sync { display: none; }
+    .card { padding: 18px; } .qcard .qb, .qcard .qh { padding-left: 16px; padding-right: 16px; }
+    .hero { padding: 26px 20px; } .fields2 { grid-template-columns: 1fr; } .submitbar { padding: 10px 16px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <img class="logo" src="assets/cw_white.png" alt="Cushman &amp; Wakefield">
+  <span class="divider"></span>
+  <span class="brand">Supply Chain Analytics Assessment</span>
+  <span class="part" id="hdrPart"></span>
+  <span class="spacer"></span>
+  <span id="sync"></span>
+  <span id="timer" hidden></span>
+</header>
+<div class="accent"></div>
+<main id="app"><div class="card muted">Loading your assessment…</div></main>
+<footer>© Cushman &amp; Wakefield · Confidential assessment · Do not share this link</footer>
+<div id="modal"><div class="card" id="modalBody"></div></div>
+<script src="config.js"></script>
+<script>
+"use strict";
+const CFG = window.TEST_CONFIG || {};
+const params = new URLSearchParams(location.search);
+const TOKEN = params.get("c") || "";
+const TEST = params.get("t") || "";
+const KEY = new URLSearchParams(location.hash.slice(1)).get("k") || "";
+const STORE = `sca:${TEST}:${TOKEN}`;
+const $ = (s, el = document) => el.querySelector(s);
+const app = $("#app");
+let C = null;                 // decrypted content
+let S = null;                 // persisted state
+let tick = null;
+
+// ---------- persistence ----------
+function load() {
+  try { return JSON.parse(localStorage.getItem(STORE)) || null; } catch { return null; }
+}
+function save() {
+  try { localStorage.setItem(STORE, JSON.stringify(S)); } catch { /* storage full or blocked: answers still go to the server on submit */ }
+}
+function newState() {
+  return { name: "", email: "", partIdx: 0, parts: {}, answers: {}, queue: [], done: false, openedSent: false };
+}
+
+// ---------- sending to the flow ----------
+const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now() + "-" + Math.random().toString(16).slice(2));
+function queue(type, part, payload) {
+  S.queue.push({ eventId: uid(), type, token: TOKEN, test: TEST, part: part || "", clientTime: new Date().toISOString(), payload: payload || {} });
+  save();
+  flush();
+}
+let flushing = false;
+async function flush() {
+  if (flushing || !S.queue.length) return showSync();
+  if (!CFG.webhookUrl || CFG.webhookUrl === "PENDING") { showSync("Offline mode: answers kept in this browser"); return; }
+  flushing = true;
+  while (S.queue.length) {
+    const ev = S.queue[0];
+    try {
+      await post(ev);
+      S.queue.shift(); save();
+    } catch {
+      flushing = false; showSync("Not saved yet – retrying");
+      setTimeout(flush, 8000);
+      return;
+    }
+  }
+  flushing = false; showSync();
+}
+// The flow answers 202 when it has accepted an event; anything else keeps the event queued for a retry.
+// Every event carries an eventId, so a retry that did reach the flow is ignored by the dashboard.
+async function post(ev) {
+  const r = await fetch(CFG.webhookUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(ev) });
+  if (!r.ok) throw new Error("HTTP " + r.status);
+}
+function showSync(msg) {
+  const pending = !!msg || (S && S.queue.length);
+  $("#sync").textContent = msg || (pending ? "Saving…" : "All answers saved");
+  $("#sync").classList.toggle("pending", !!pending);
+}
+
+// ---------- decryption ----------
+const b64 = (s) => Uint8Array.from(atob(s.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((s.length + 3) % 4)), c => c.charCodeAt(0));
+async function decrypt() {
+  const enc = await (await fetch(`content/${encodeURIComponent(TEST)}.enc.json`, { cache: "no-store" })).json();
+  const key = await crypto.subtle.importKey("raw", b64(KEY), "AES-GCM", false, ["decrypt"]);
+  const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64(enc.iv) }, key, b64(enc.ct));
+  return JSON.parse(new TextDecoder().decode(plain));
+}
+
+// ---------- screens ----------
+function fail(msg) {
+  app.innerHTML = `<div class="card"><h1>This link does not work</h1><div class="notice error">${msg}</div>
+    <p class="muted">Please use the exact link from your invitation email, or reply to it for a new one.</p></div>`;
+}
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+function welcome() {
+  $("#hdrPart").textContent = C.title;
+  const plan = C.parts.map(p => `<div class="p ${p.closed ? "closed" : ""}"><span class="t">${p.minutes} min</span><b>${esc(p.title.split(" –")[0])}</b>
+      <div style="margin-top:4px"><span class="tag ${p.closed ? "closed" : "open"}">${p.closed ? "Closed book" : "On computer"}</span></div>
+      <ul>${p.sections.map(s => `<li>${esc(s.title.replace(/^Section /, ""))}</li>`).join("")}</ul></div>`).join("");
+  app.innerHTML = `<div class="hero"><div class="eyebrow">Supply Chain Network Design &amp; Analytics</div>
+    <h1>${esc(C.title)}</h1><div class="rule"></div>
+    <p>${C.total} marks · ${C.parts.reduce((a, p) => a + p.minutes, 0)} minutes · ${C.parts.length} timed parts</p></div>
+    <div class="card"><h2>How the test works</h2>
+    <div class="plan">${plan}</div>
+    <ul class="rules">
+      <li>Each part has its own timer. When it reaches zero, the part is submitted automatically. Once a part is submitted you cannot go back to it.</li>
+      <li>Your answers save as you type. If your browser closes, reopen the same link: the timer keeps running while you are away.</li>
+      <li><strong>Closed-book parts</strong> run in full screen. Copy and paste are switched off, and a calculator is built into the page. Leaving the page, switching tabs or windows, or exiting full screen is recorded and shown to the panel.</li>
+      <li>Show your working and state any assumption. A correct method with a small slip earns most of the marks; a bare number earns few.</li>
+    </ul>
+    </div><div class="card"><h2>Your details</h2>
+    <div class="fields2"><div><label class="f" for="nm">Full name</label><input type="text" id="nm" value="${esc(S.name)}" autocomplete="name"></div>
+    <div><label class="f" for="em">Email</label><input type="email" id="em" value="${esc(S.email)}" autocomplete="email"></div></div>
+    <div class="consent"><input type="checkbox" id="ok"><label for="ok">I will complete this test on my own, and I understand that my answers, timings and page-focus activity are recorded and stored by Cushman &amp; Wakefield for this recruitment.</label></div>
+    <p style="margin:22px 0 0"><button id="go" disabled>Continue</button></p>
+  </div>`;
+  const check = () => { $("#go").disabled = !($("#nm").value.trim() && /.+@.+\..+/.test($("#em").value) && $("#ok").checked); };
+  ["input", "change"].forEach(e => app.addEventListener(e, check));
+  $("#go").onclick = () => {
+    S.name = $("#nm").value.trim(); S.email = $("#em").value.trim(); save();
+    queue("identity", "", { name: S.name, email: S.email, userAgent: navigator.userAgent, screen: `${screen.width}x${screen.height}` });
+    partIntro();
+  };
+}
+
+function partIntro() {
+  stopTimer();
+  const p = C.parts[S.partIdx];
+  if (!p) return finish();
+  const st = S.parts[p.id];
+  $("#hdrPart").textContent = p.title;
+  const resuming = st && st.start && !st.submitted;
+  const n = S.partIdx + 1;
+  app.innerHTML = `<div class="hero"><div class="eyebrow">Part ${n} of ${C.parts.length} · ${p.closed ? "Closed book" : "On computer"}</div>
+    <h1>${esc(p.title)}</h1><div class="rule"></div>
+    <p>${p.minutes} minutes · ${p.sections.reduce((a, s) => a + s.marks, 0)} marks</p></div>
+    <div class="card">
+    ${p.sections.map(s => `<div class="row" style="justify-content:space-between;border-bottom:1px solid var(--grey-25);padding:8px 0"><span>${esc(s.title)}</span><span class="muted">${s.marks} marks</span></div>`).join("")}
+    <div class="notice ${p.closed ? "" : "info"}" style="margin-top:20px">${esc(p.note)}</div>
+    ${p.closed ? `<p class="muted">This part opens in full screen. Stay on this page until you submit it.</p>` : ""}
+    ${resuming ? `<div class="notice error">You left this part while it was running. The timer did not stop: <b>${fmt(remaining(p))}</b> remain.</div>` : ""}
+    <p style="margin:22px 0 0"><button id="start">${resuming ? "Resume" : "Start"} Part ${n}</button></p>
+  </div>`;
+  $("#start").onclick = async () => {
+    if (p.closed) { try { await document.documentElement.requestFullscreen(); } catch { /* not allowed: still recorded below */ } }
+    if (!S.parts[p.id]) { S.parts[p.id] = { start: Date.now(), events: [] }; save(); queue("part_start", p.id, { minutes: p.minutes }); }
+    else queue("part_resume", p.id, { remainingSec: Math.round(remaining(p) / 1000) });
+    runPart();
+  };
+}
+
+function remaining(p) { return S.parts[p.id].start + p.minutes * 60000 - Date.now(); }
+function fmt(ms) { const s = Math.max(0, Math.round(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; }
+
+function fieldHtml(q, f) {
+  const id = `${q.id}.${f.id}`, v = esc(S.answers[id] || "");
+  const lab = `<label class="f" for="${id}">${esc(f.label)}</label>`;
+  if (f.type === "short") return lab + `<input type="text" class="short" id="${id}" data-k="${id}" value="${v}">`;
+  return lab + `<textarea id="${id}" data-k="${id}" class="${f.type === "code" ? "code" : ""}" spellcheck="${f.type !== "code"}">${v}</textarea>`;
+}
+
+function runPart() {
+  const p = C.parts[S.partIdx];
+  const files = C.files.filter(f => f.part === p.id);
+  app.innerHTML = `
+    ${files.length ? `<div class="card intro"><h3>Data files</h3><p class="muted" style="margin:0">Download these and open them in Excel, SQL or Python. Do not re-save them before you start: they are deliberately unclean.</p>
+      <div class="files">${files.map((f, i) => `<a href="#" data-file="${i}"><span aria-hidden="true">⤓</span> ${esc(f.name)}</a>`).join("")}</div></div>` : ""}
+    ${p.sections.map(s => `<h2 class="sec">${esc(s.title)}<span class="m">${s.marks} marks</span></h2>
+      ${s.intro ? `<div class="card intro q">${s.intro}</div>` : ""}
+      ${s.questions.map(q => `<div class="card qcard" id="q-${q.id}"><div class="qh"><span class="qid">${q.id}</span><span class="marks">${q.marks} mark${q.marks > 1 ? "s" : ""}</span></div>
+        <div class="qb"><div class="q">${q.html.replace(/^<p><strong>[A-E]\d+[.)]?<\/strong>\s*/, "<p>")}</div>${q.fields.map(f => fieldHtml(q, f)).join("")}</div></div>`).join("")}`).join("")}
+    ${!p.closed ? `<div class="card"><h3>Attach your workings (optional)</h3>
+      <p class="muted">Your workbook, script or query file. Up to 3 files, 8 MB each.</p>
+      <input type="file" id="upl" multiple><div id="uplMsg" class="muted"></div></div>` : ""}
+    <div class="submitbar"><span id="integrity"></span><span class="spacer"></span><button id="submit">Submit Part ${S.partIdx + 1}</button></div>`;
+  window.scrollTo(0, 0);
+
+  app.querySelectorAll("[data-k]").forEach(el => el.addEventListener("input", () => { S.answers[el.dataset.k] = el.value; saveSoon(); }));
+  app.querySelectorAll("textarea.code").forEach(el => el.addEventListener("keydown", e => {
+    if (e.key === "Tab") { e.preventDefault(); const s = el.selectionStart; el.setRangeText("  ", s, el.selectionEnd, "end"); el.dispatchEvent(new Event("input")); }
+  }));
+  app.querySelectorAll("[data-file]").forEach(a => a.onclick = (e) => {
+    e.preventDefault();
+    const f = files[+a.dataset.file];
+    const url = URL.createObjectURL(new Blob([b64(f.b64)]));
+    const dl = Object.assign(document.createElement("a"), { href: url, download: f.name });
+    document.body.appendChild(dl); dl.click(); dl.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    logEvent("file_download", f.name);
+  });
+  const upl = $("#upl");
+  if (upl) upl.onchange = () => uploadFiles(p, upl.files);
+  $("#submit").onclick = () => confirmSubmit(p);
+  if (p.closed) showCalc(); else hideCalc();
+  showIntegrity(p);
+  startTimer(p);
+}
+
+async function uploadFiles(p, list) {
+  const msg = $("#uplMsg");
+  const picked = [...list].slice(0, 3);
+  for (const f of picked) {
+    if (f.size > 8 * 1024 * 1024) { msg.textContent = `${f.name} is over 8 MB and was not attached.`; continue; }
+    const data = await new Promise(res => { const r = new FileReader(); r.onload = () => res(r.result.split(",")[1]); r.readAsDataURL(f); });
+    queue("file", p.id, { name: f.name, size: f.size, b64: data });
+    msg.textContent = `Attached: ${picked.map(x => x.name).join(", ")}`;
+  }
+}
+
+let saveTimer = null;
+function saveSoon() { clearTimeout(saveTimer); saveTimer = setTimeout(save, 400); }
+
+function startTimer(p) {
+  const t = $("#timer"); t.hidden = false;
+  const step = () => {
+    const ms = remaining(p);
+    t.textContent = fmt(ms);
+    t.classList.toggle("low", ms < 5 * 60000);
+    if (ms <= 0) { stopTimer(); submitPart(p, true); }
+  };
+  step(); tick = setInterval(step, 1000);
+}
+function stopTimer() { clearInterval(tick); tick = null; $("#timer").hidden = true; }
+
+function confirmSubmit(p) {
+  const qs = p.sections.flatMap(s => s.questions);
+  const blank = qs.filter(q => !q.fields.some(f => (S.answers[`${q.id}.${f.id}`] || "").trim())).map(q => q.id);
+  modal(`<h3>Submit ${esc(p.title)}?</h3>
+    ${blank.length ? `<p class="notice">No answer yet for: ${blank.join(", ")}</p>` : ""}
+    <p>You will not be able to come back to this part.</p>
+    <div class="row"><button id="mYes">Submit</button><button class="secondary" id="mNo">Keep working</button></div>`);
+  $("#mYes").onclick = () => { closeModal(); submitPart(p, false); };
+  $("#mNo").onclick = closeModal;
+}
+
+function submitPart(p, auto) {
+  const st = S.parts[p.id];
+  if (st.submitted) return;
+  stopTimer();
+  st.submitted = Date.now();
+  const ids = p.sections.flatMap(s => s.questions.flatMap(q => q.fields.map(f => `${q.id}.${f.id}`)));
+  const answers = Object.fromEntries(ids.map(k => [k, S.answers[k] || ""]));
+  flushIntegrity();
+  queue("part_submit", p.id, { autoSubmitted: auto, secondsUsed: Math.round((st.submitted - st.start) / 1000), answers, integrity: counts(st) });
+  S.partIdx++; save();
+  if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  if (auto) modal(`<h3>Time is up</h3><p>${esc(p.title)} was submitted automatically.</p><p><button id="mOk">Continue</button></p>`), $("#mOk").onclick = () => { closeModal(); partIntro(); };
+  else partIntro();
+}
+
+function finish() {
+  stopTimer(); hideCalc();
+  $("#hdrPart").textContent = "Finished";
+  if (!S.done) { S.done = true; save(); queue("completed", "", {}); }
+  app.innerHTML = `<div class="card done"><div class="tick">✓</div><h1>Thank you, ${esc(S.name.split(" ")[0])}</h1>
+    <p>Your test is complete. Your answers have been sent to the hiring team, who will be in touch about next steps.</p>
+    <p class="muted" id="finalSync"></p></div>`;
+  const upd = () => { const el = $("#finalSync"); if (el) el.textContent = S.queue.length ? `Still sending ${S.queue.length} item(s). Please keep this page open.` : "Everything has been received. You can close this page."; };
+  upd(); setInterval(upd, 2000);
+}
+
+// ---------- integrity monitoring ----------
+function current() { const p = C && C.parts[S.partIdx]; return p && S.parts[p.id] && !S.parts[p.id].submitted ? p : null; }
+let pendingInt = [];
+function logEvent(kind, detail) {
+  const p = current(); if (!p) return;
+  const e = { kind, at: new Date().toISOString(), detail: detail || "" };
+  S.parts[p.id].events.push(e); save();
+  pendingInt.push(e); showIntegrity(p);
+}
+function counts(st) { const c = {}; st.events.forEach(e => c[e.kind] = (c[e.kind] || 0) + 1); return c; }
+function flushIntegrity() {
+  const p = current() || C.parts[S.partIdx];
+  if (pendingInt.length && p) { queue("integrity", p.id, { events: pendingInt }); pendingInt = []; }
+}
+setInterval(() => { if (C && pendingInt.length) flushIntegrity(); }, 60000);
+function showIntegrity(p) {
+  const el = $("#integrity"); if (!el || !p.closed) return;
+  const c = counts(S.parts[p.id]);
+  const n = (c.tab_hidden || 0) + (c.window_blur || 0) + (c.fullscreen_exit || 0);
+  el.textContent = n ? `Left the page ${n} time${n > 1 ? "s" : ""} – recorded` : "Closed book – stay on this page";
+  el.classList.toggle("flagged", n > 0);
+}
+// Focus changes only matter in closed-book parts; in Part 2 candidates are expected to use Excel.
+const closedPart = () => { const p = current(); return p && p.closed; };
+let hiddenAt = 0;
+document.addEventListener("visibilitychange", () => {
+  if (!closedPart()) return;
+  if (document.hidden) { hiddenAt = Date.now(); logEvent("tab_hidden"); }
+  else if (hiddenAt) { logEvent("tab_returned", `${Math.round((Date.now() - hiddenAt) / 1000)}s away`); hiddenAt = 0; }
+});
+window.addEventListener("blur", () => { if (closedPart() && !document.hidden) logEvent("window_blur"); });
+document.addEventListener("fullscreenchange", () => {
+  const p = current();
+  if (!document.fullscreenElement && p && p.closed) {
+    logEvent("fullscreen_exit");
+    modal(`<h3>You left full screen</h3><p>This has been recorded. Return to full screen to continue the closed-book part.</p><p><button id="mFs">Return to full screen</button></p>`);
+    $("#mFs").onclick = async () => { try { await document.documentElement.requestFullscreen(); } catch {} closeModal(); };
+  }
+});
+function closedNow(e) { const p = current(); return p && p.closed && !(e.target.closest && e.target.closest("#calc")); }
+["copy", "cut"].forEach(t => document.addEventListener(t, e => {
+  if (closedNow(e)) { e.preventDefault(); logEvent(t + "_blocked"); }
+  else if (current() && e.target.closest && e.target.closest(".q")) logEvent("question_copied");
+}));
+document.addEventListener("paste", e => {
+  if (closedNow(e)) { e.preventDefault(); logEvent("paste_blocked", (e.clipboardData.getData("text") || "").slice(0, 200)); }
+  else if (current()) logEvent("paste", `${(e.clipboardData.getData("text") || "").length} chars`);
+});
+document.addEventListener("contextmenu", e => { if (closedPart()) e.preventDefault(); });
+document.addEventListener("dragstart", e => { if (closedPart()) e.preventDefault(); });
+window.addEventListener("beforeunload", e => { if (current()) { flushIntegrity(); e.preventDefault(); e.returnValue = ""; } });
+
+// ---------- calculator ----------
+function showCalc() {
+  if ($("#calc")) return;
+  const box = document.createElement("div"); box.id = "calc";
+  box.innerHTML = `<div class="ch"><span>Calculator</span><button id="cHide" aria-label="Minimise calculator">–</button></div>
+    <div class="cb"><input type="text" id="cIn" placeholder="(100*50+300*200)/1000" autocomplete="off"><div class="out" id="cOut"></div>
+    <div class="muted" style="font-size:12px">+ − * / ( ) ^ % sqrt( )</div></div>`;
+  document.body.appendChild(box);
+  const btn = Object.assign(document.createElement("button"), { id: "calcToggle", textContent: "Calculator" });
+  document.body.appendChild(btn);
+  box.hidden = true;   // starts minimised so it never covers a question
+  $("#cHide").onclick = () => { box.hidden = true; btn.hidden = false; };
+  btn.onclick = () => { box.hidden = false; btn.hidden = true; $("#cIn").focus(); };
+  $("#cIn").addEventListener("input", () => { $("#cOut").textContent = calc($("#cIn").value); });
+}
+function hideCalc() { const a = $("#calc"), b = $("#calcToggle"); if (a) a.remove(); if (b) b.remove(); }
+function calc(expr) {
+  const e = expr.replace(/,/g, "").replace(/×/g, "*").replace(/÷/g, "/").replace(/−/g, "-");
+  if (!e.trim()) return "";
+  if (!/^[\d+\-*/().\s%^]*$/.test(e.replace(/sqrt/g, ""))) return "?";
+  try {
+    const js = e.replace(/\^/g, "**").replace(/sqrt/g, "Math.sqrt").replace(/(\d+(?:\.\d+)?)%/g, "($1/100)");
+    const v = Function(`"use strict"; return (${js});`)();
+    return Number.isFinite(v) ? (+v.toPrecision(12)).toLocaleString("en-IN", { maximumFractionDigits: 6 }) : "?";
+  } catch { return ""; }
+}
+
+// ---------- modal ----------
+function modal(html) { $("#modalBody").innerHTML = html; $("#modal").style.display = "flex"; }
+function closeModal() { $("#modal").style.display = "none"; }
+
+// ---------- start ----------
+(async function init() {
+  if (!TOKEN || !TEST || !KEY) return fail("The link is incomplete.");
+  try { C = await decrypt(); } catch { return fail("The test could not be opened from this link."); }
+  S = load() || newState();
+  if (!S.openedSent) { S.openedSent = true; save(); queue("opened", "", { referrer: document.referrer || "", userAgent: navigator.userAgent }); }
+  else queue("reopened", "", {});
+  flush();
+  if (S.done || S.partIdx >= C.parts.length) return finish();
+  if (!S.name) return welcome();
+  partIntro();
+})();
+</script>
+</body>
+</html>
